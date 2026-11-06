@@ -14,20 +14,21 @@ permissions:
 jobs:
   build:
     name: Build and test Android app
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4.0.4
 
       - name: Install Android SDK packages
         run: |
@@ -38,11 +39,11 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Run unit tests and build APK
+      - name: Run tests and build APK
         run: gradle --no-daemon clean testDebugUnitTest assembleDebug
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: success()
         with:
           name: conta-sob-controle-debug-apk
@@ -50,11 +51,22 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload Room schemas
-        uses: actions/upload-artifact@v4
+      - name: Check Room schemas
+        id: schemas
         if: always()
+        shell: bash
+        run: |
+          if [ -d app/schemas ] && find app/schemas -type f -name '*.json' -print -quit | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Room schemas
+        uses: actions/upload-artifact@v7
+        if: always() && steps.schemas.outputs.found == 'true'
         with:
           name: room-schemas
-          path: app/schemas/
-          if-no-files-found: warn
+          path: app/schemas/**/*.json
+          if-no-files-found: error
           retention-days: 14
