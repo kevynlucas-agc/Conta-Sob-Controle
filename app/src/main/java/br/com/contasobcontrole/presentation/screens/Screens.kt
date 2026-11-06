@@ -1,3 +1,7 @@
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3Api::class
+)
+
 package br.com.contasobcontrole.presentation.screens
 
 import android.net.Uri
